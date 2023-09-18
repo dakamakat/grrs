@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use clap::ArgAction;
 use clap::Parser;
 use std::fs::File;
 use std::io::prelude::*;
@@ -13,6 +14,9 @@ struct Cli {
     pattern: String,
     /// The path to the file to read
     path: std::path::PathBuf,
+    /// Use BufReader or not
+    #[clap(long, short)]
+    no_bufferize: bool,
 }
 fn main() -> std::io::Result<()> {
     let args = Cli::parse();
@@ -26,7 +30,11 @@ fn main() -> std::io::Result<()> {
             args.path.display()
         );
 
-        read_buf(&args);
+        if args.no_bufferize {
+            read_no_buf(&args);
+        } else {
+            read_buf(&args);
+        }
     }
 
     let elapsed = now.elapsed();
