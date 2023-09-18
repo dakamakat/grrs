@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use anyhow::{Context, Result};
 use clap::ArgAction;
 use clap::Parser;
 use std::fs::File;
@@ -43,26 +44,27 @@ fn main() -> std::io::Result<()> {
     Ok(())
 }
 
-fn read_no_buf(args: &Cli) {
-    let content = std::fs::read_to_string(&args.path).expect("could not read file");
+fn read_no_buf(args: &Cli) -> Result<()> {
+    let content = std::fs::read_to_string(&args.path)
+        .with_context(|| format!("could not read file `{}`", &args.path.to_string_lossy()))?;
 
     for line in content.lines() {
         if line.contains(&args.pattern) {
             println!("{}", line);
         }
     }
+
+    Ok(())
 }
 
-fn read_buf(args: &Cli) -> std::io::Result<()> {
+fn read_buf(args: &Cli) -> Result<()> {
     let f = File::open(&args.path)?;
 
     let mut reader = BufReader::new(f);
 
     for line in reader.lines() {
-        let res = match line {
-            Ok(line) => line,
-            Err(e) => return Err(e),
-        };
+        let res = line
+            .with_context(|| format!("could not read line on path `{}`", &args.path.to_string_lossy()))?;
 
         if res.contains(&args.pattern) {
             println!("{}", res);
