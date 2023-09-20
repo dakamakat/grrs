@@ -28,6 +28,7 @@ fn main() -> Result<()> {
     let args = Cli::parse();
     let now = Instant::now();
 
+    let result;
     // Code block to measure.
     {
         println!(
@@ -36,16 +37,17 @@ fn main() -> Result<()> {
             args.path.display()
         );
 
-        match args.no_bufferize {
-            true => return read_no_buf(&args),
-            false => return read_buf(&args),
+        if args.no_bufferize {
+            result = read_no_buf(&args)
+        } else {
+            result = read_buf(&args)
         }
     }
 
     let elapsed = now.elapsed();
     println!("Elapsed: {:.2?}", elapsed);
 
-    Ok(())
+    result
 }
 
 fn read_no_buf(args: &Cli) -> Result<()> {
@@ -84,7 +86,7 @@ fn read_buf(args: &Cli) -> Result<()> {
         })?;
 
         if res.contains(&args.pattern) {
-            write_to_console(&res, &args.path);
+            write_to_console(&res, &args.path)?;
         }
     }
 
