@@ -4,8 +4,12 @@ use anyhow::{Context, Result};
 use clap::ArgAction;
 use clap::Parser;
 use std::fs::File;
+use std::io;
 use std::io::prelude::*;
 use std::io::BufReader;
+use std::io::BufWriter;
+use std::io::Stdout;
+use std::path::PathBuf;
 use std::time::Instant;
 
 /// Search for a pattern in a file and display the lines that contain it.
@@ -45,12 +49,16 @@ fn main() -> std::io::Result<()> {
 }
 
 fn read_no_buf(args: &Cli) -> Result<()> {
-    let content = std::fs::read_to_string(&args.path)
-        .with_context(|| format!("could not read file `{}`", &args.path.to_string_lossy()))?;
+    let content = std::fs::read_to_string(&args.path).with_context(|| {
+        format!(
+            "could not read file on path `{}`",
+            &args.path.to_string_lossy()
+        )
+    })?;
 
     for line in content.lines() {
         if line.contains(&args.pattern) {
-            println!("{}", line);
+            write_to_console(&line.to_string(), &args.path);
         }
     }
 
@@ -58,18 +66,38 @@ fn read_no_buf(args: &Cli) -> Result<()> {
 }
 
 fn read_buf(args: &Cli) -> Result<()> {
-    let f = File::open(&args.path)?;
+    let f = File::open(&args.path).with_context(|| {
+        format!(
+            "could not find file on path `{}`",
+            &args.path.to_string_lossy()
+        )
+    })?;
 
     let mut reader = BufReader::new(f);
 
     for line in reader.lines() {
-        let res = line
-            .with_context(|| format!("could not read line on path `{}`", &args.path.to_string_lossy()))?;
+        let res = line.with_context(|| {
+            format!(
+                "could not read line on path `{}`",
+                &args.path.to_string_lossy()
+            )
+        })?;
 
         if res.contains(&args.pattern) {
-            println!("{}", res);
+            write_to_console(&res, &args.path);
         }
     }
+
+    Ok(())
+}
+
+fn write_to_console(str: &String, path: &PathBuf) -> Result<()> {
+    let stdout = io::stdout();
+
+    let mut handle = io::BufWriter::new(stdout);
+
+    writeln!(handle, "{}", str)
+        .with_context(|| format!("could not print line on path `{}`", path.to_string_lossy()))?;
 
     Ok(())
 }
