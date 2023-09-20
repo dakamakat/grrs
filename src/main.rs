@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use anyhow::Ok;
 use anyhow::{Context, Result};
 use clap::ArgAction;
 use clap::Parser;
@@ -23,7 +24,7 @@ struct Cli {
     #[clap(long, short)]
     no_bufferize: bool,
 }
-fn main() -> std::io::Result<()> {
+fn main() -> Result<()> {
     let args = Cli::parse();
     let now = Instant::now();
 
@@ -35,10 +36,9 @@ fn main() -> std::io::Result<()> {
             args.path.display()
         );
 
-        if args.no_bufferize {
-            read_no_buf(&args);
-        } else {
-            read_buf(&args);
+        match args.no_bufferize {
+            true => return read_no_buf(&args),
+            false => return read_buf(&args),
         }
     }
 
@@ -58,7 +58,7 @@ fn read_no_buf(args: &Cli) -> Result<()> {
 
     for line in content.lines() {
         if line.contains(&args.pattern) {
-            write_to_console(&line.to_string(), &args.path);
+            write_to_console(&line.to_string(), &args.path)?;
         }
     }
 
